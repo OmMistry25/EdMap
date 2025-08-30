@@ -9,8 +9,8 @@ export function createClient() {
   )
 }
 
-export function createServerComponentClient() {
-  const cookieStore = cookies()
+export async function createServerComponentClient() {
+  const cookieStore = await cookies()
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -36,8 +36,8 @@ export function createServerComponentClient() {
   )
 }
 
-export function createRouteHandlerClient() {
-  const cookieStore = cookies()
+export async function createRouteHandlerClient() {
+  const cookieStore = await cookies()
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
