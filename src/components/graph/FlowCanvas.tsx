@@ -55,7 +55,7 @@ export function FlowCanvas({ className = '' }: FlowCanvasProps) {
       let graphData: GraphData
       try {
         graphData = JSON.parse(responseText)
-      } catch (parseError) {
+      } catch {
         throw new Error(`Invalid response format: ${responseText}`)
       }
       
@@ -174,6 +174,7 @@ export function FlowCanvas({ className = '' }: FlowCanvasProps) {
           onConnect={onConnect}
           nodeTypes={nodeTypes}
           fitView
+          fitViewOptions={{ padding: 0.1, includeHiddenNodes: false }}
           attributionPosition="bottom-left"
           className="bg-gray-50"
         >

@@ -81,17 +81,80 @@ export async function GET() {
       return NextResponse.json({ error: 'Failed to fetch items' }, { status: 500 })
     }
 
-    // Build the graph data
+        // Build the graph data with hierarchical layout
     const nodes: GraphNode[] = []
     const edges: GraphEdge[] = []
-
-    // Add course nodes (top level)
-    courses?.forEach((course, courseIndex) => {
-      const nodeId = `course-${course.id}`
+    
+    // Node dimensions and spacing
+    const COURSE_WIDTH = 250
+    const SOURCE_WIDTH = 200
+    const ITEM_WIDTH = 220
+    const HORIZONTAL_SPACING = 100
+    const VERTICAL_SPACING = 150
+    
+    // Track positions for each course column
+    const courseColumns: { [courseId: string]: { 
+      x: number; 
+      sources: { id: string; items: typeof items; x: number; y: number; height: number }[];
+      maxSourceWidth: number;
+      totalHeight: number;
+    } } = {}
+    
+    let currentX = 0
+    
+    // First pass: calculate layout for each course
+    courses?.forEach((course) => {
+      const courseSources = sources?.filter(s => s.course_id === course.id) || []
+      const sourceLayouts = courseSources.map((source, sourceIndex) => {
+        const sourceItems = items?.filter(i => i.source_id === source.id) || []
+        const sourceX = sourceIndex * (SOURCE_WIDTH + HORIZONTAL_SPACING)
+        const sourceY = VERTICAL_SPACING
+        
+        // Calculate height needed for this source's items
+        const maxItemsPerRow = 2
+        const itemRows = Math.ceil(sourceItems.length / maxItemsPerRow)
+        const sourceHeight = VERTICAL_SPACING + (itemRows * 200) // 200px per row of items
+        
+        return { 
+          id: source.id, 
+          items: sourceItems, 
+          x: sourceX, 
+          y: sourceY,
+          height: sourceHeight
+        }
+      })
+      
+      // Calculate width needed for this course column
+      const sourceCount = sourceLayouts.length
+      const maxSourceWidth = Math.max(
+        SOURCE_WIDTH, // Minimum source width
+        sourceCount * (SOURCE_WIDTH + HORIZONTAL_SPACING) - HORIZONTAL_SPACING // Width needed for sources
+      )
+      
+      // Calculate total height needed for this course
+      const totalHeight = Math.max(...sourceLayouts.map(s => s.height)) + VERTICAL_SPACING
+      
+      courseColumns[course.id] = {
+        x: currentX,
+        sources: sourceLayouts,
+        maxSourceWidth: maxSourceWidth,
+        totalHeight: totalHeight
+      }
+      
+      currentX += Math.max(COURSE_WIDTH, maxSourceWidth) + HORIZONTAL_SPACING
+    })
+    
+    // Second pass: create nodes with calculated positions
+    courses?.forEach((course) => {
+      const column = courseColumns[course.id]
+      if (!column) return
+      
+      // Add course node
+      const courseNodeId = `course-${course.id}`
       nodes.push({
-        id: nodeId,
+        id: courseNodeId,
         type: 'course',
-        position: { x: courseIndex * 300, y: 0 },
+        position: { x: column.x, y: 0 },
         data: {
           label: course.title,
           title: course.title,
@@ -100,82 +163,74 @@ export async function GET() {
           color: course.color_hex
         }
       })
-    })
-
-    // Add source nodes (second level)
-    sources?.forEach((source) => {
-      const course = courses?.find(c => c.id === source.course_id)
-      if (!course) return
-
-      const courseNodeId = `course-${course.id}`
-      const sourceNodeId = `source-${source.id}`
       
-      // Position sources below their course
-      const courseIndex = courses?.findIndex(c => c.id === course.id) || 0
-      const sourceOffset = sources?.filter(s => s.course_id === course.id).findIndex(s => s.id === source.id) || 0
-      
-      nodes.push({
-        id: sourceNodeId,
-        type: 'source',
-        position: { 
-          x: courseIndex * 300 + sourceOffset * 100, 
-          y: 150 
-        },
-        data: {
-          label: source.display_name,
-          provider: source.provider
-        }
-      })
-
-      // Add edge from course to source
-      edges.push({
-        id: `edge-${courseNodeId}-${sourceNodeId}`,
-        source: courseNodeId,
-        target: sourceNodeId,
-        type: 'smoothstep'
-      })
-    })
-
-    // Add item nodes (third level)
-    items?.forEach((item) => {
-      const source = sources?.find(s => s.id === item.source_id)
-      const course = courses?.find(c => c.id === item.course_id)
-      if (!source || !course) return
-
-      const sourceNodeId = `source-${source.id}`
-      const itemNodeId = `item-${item.id}`
-      
-      // Position items below their source
-      const sourceIndex = sources?.findIndex(s => s.id === source.id) || 0
-      const itemOffset = items?.filter(i => i.source_id === source.id).findIndex(i => i.id === item.id) || 0
-      
-      nodes.push({
-        id: itemNodeId,
-        type: 'item',
-        position: { 
-          x: sourceIndex * 100 + itemOffset * 80, 
-          y: 300 
-        },
-        data: {
-          label: item.title,
-          title: item.title,
-          type: item.type,
-          status: item.status,
-          dueAt: item.due_at,
-          points: item.points_possible,
-          estimatedMinutes: item.estimated_minutes,
-          labels: item.labels
-        }
-      })
-
-      // Add edge from source to item
-      edges.push({
-        id: `edge-${sourceNodeId}-${itemNodeId}`,
-        source: sourceNodeId,
-        target: itemNodeId,
-        type: 'smoothstep'
+             // Add source nodes for this course
+       column.sources.forEach((sourceLayout) => {
+         const source = sources?.find(s => s.id === sourceLayout.id)
+         if (!source) return
+         
+         const sourceX = column.x + sourceLayout.x
+         const sourceY = sourceLayout.y
+         const sourceNodeId = `source-${source.id}`
+         
+         nodes.push({
+           id: sourceNodeId,
+           type: 'source',
+           position: { x: sourceX, y: sourceY },
+           data: {
+             label: source.display_name,
+             provider: source.provider
+           }
+         })
+         
+         // Add edge from course to source
+         edges.push({
+           id: `edge-${courseNodeId}-${sourceNodeId}`,
+           source: courseNodeId,
+           target: sourceNodeId,
+           type: 'smoothstep'
+         })
+         
+         // Add item nodes for this source
+         const maxItemsPerRow = 2
+         const ITEM_VERTICAL_SPACING = 200 // Large spacing for items
+         sourceLayout.items.forEach((item, itemIndex) => {
+           const row = Math.floor(itemIndex / maxItemsPerRow)
+           const col = itemIndex % maxItemsPerRow
+           
+           const itemX = sourceX + (col * (ITEM_WIDTH + HORIZONTAL_SPACING))
+           const itemY = sourceY + VERTICAL_SPACING + (row * ITEM_VERTICAL_SPACING)
+          
+          const itemNodeId = `item-${item.id}`
+          
+          nodes.push({
+            id: itemNodeId,
+            type: 'item',
+            position: { x: itemX, y: itemY },
+            data: {
+              label: item.title,
+              title: item.title,
+              type: item.type,
+              status: item.status,
+              dueAt: item.due_at,
+              points: item.points_possible,
+              estimatedMinutes: item.estimated_minutes,
+              labels: item.labels
+            }
+          })
+          
+          // Add edge from source to item
+          edges.push({
+            id: `edge-${sourceNodeId}-${itemNodeId}`,
+            source: sourceNodeId,
+            target: itemNodeId,
+            type: 'smoothstep'
+          })
+        })
       })
     })
+    
+    
 
     const graphData: GraphData = {
       nodes,
