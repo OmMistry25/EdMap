@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { TestQueryAndState } from "@/components/demo/TestQueryAndState"
 import { TestProfiles } from "@/components/demo/TestProfiles"
+import { TestCoreTables } from "@/components/demo/TestCoreTables"
 import { getServerSession, signOut } from "@/lib/auth"
 import { getProfile } from "@/lib/db/queries"
 import { redirect } from "next/navigation"
@@ -65,6 +66,7 @@ export default async function Home() {
             <div className="space-y-6">
               <TestQueryAndState />
               <TestProfiles />
+              <TestCoreTables />
             </div>
           </div>
         </div>

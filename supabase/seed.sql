@@ -1,14 +1,52 @@
--- Seed data for testing profiles table
--- This will be used to test RLS policies
+-- Seed data for testing core tables
+-- Note: Replace the user_id with an actual user ID from your auth.users table
 
--- Note: In a real scenario, profiles are created automatically via the trigger
--- when users sign up. This seed is for testing purposes only.
-
--- Insert a test profile (you would need to replace the UUID with a real user ID)
--- INSERT INTO profiles (id, full_name, school_email, timezone) 
--- VALUES (
---   '00000000-0000-0000-0000-000000000000', -- Replace with actual user UUID
---   'Test User',
---   'test@example.com',
---   'America/New_York'
+-- Example: Insert a demo course (replace USER_ID with actual user UUID)
+-- INSERT INTO courses (owner_id, title, code, term, instructor, color_hex) VALUES (
+--   'USER_ID_HERE',
+--   'Introduction to Computer Science',
+--   'CS101',
+--   'Fall 2024',
+--   'Dr. Smith',
+--   '#3B82F6'
 -- );
+
+-- Example: Insert a demo source for the course
+-- INSERT INTO sources (course_id, provider, display_name, external_course_id) VALUES (
+--   (SELECT id FROM courses WHERE title = 'Introduction to Computer Science' LIMIT 1),
+--   'canvas',
+--   'Canvas Course',
+--   'canvas_course_123'
+-- );
+
+-- Example: Insert demo items
+-- INSERT INTO items (course_id, source_id, title, type, status, due_at, points_possible, estimated_minutes) VALUES
+--   ((SELECT id FROM courses WHERE title = 'Introduction to Computer Science' LIMIT 1),
+--    (SELECT id FROM sources WHERE display_name = 'Canvas Course' LIMIT 1),
+--    'Assignment 1: Hello World',
+--    'assignment',
+--    'upcoming',
+--    '2024-09-15 23:59:00+00',
+--    100,
+--    120),
+--   ((SELECT id FROM courses WHERE title = 'Introduction to Computer Science' LIMIT 1),
+--    (SELECT id FROM sources WHERE display_name = 'Canvas Course' LIMIT 1),
+--    'Quiz 1: Programming Basics',
+--    'quiz',
+--    'upcoming',
+--    '2024-09-20 23:59:00+00',
+--    50,
+--    60),
+--   ((SELECT id FROM courses WHERE title = 'Introduction to Computer Science' LIMIT 1),
+--    (SELECT id FROM sources WHERE display_name = 'Canvas Course' LIMIT 1),
+--    'Midterm Exam',
+--    'exam',
+--    'upcoming',
+--    '2024-10-15 14:30:00+00',
+--    200,
+--    120);
+
+-- To use this seed data:
+-- 1. First get your user ID: SELECT id FROM auth.users WHERE email = 'your-email@example.com';
+-- 2. Replace 'USER_ID_HERE' with your actual user ID
+-- 3. Run the INSERT statements
