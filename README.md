@@ -1,36 +1,189 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# EdMap - Visual Academic Planner
 
-## Getting Started
+A Next.js application that helps students visualize their academic workload as an interactive flowchart, connecting various course management systems.
 
-First, run the development server:
+## 🚀 Quick Start
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+### Prerequisites
+- Node.js 18+ 
+- Supabase account
+- Git
+
+### Setup
+
+1. **Clone and install dependencies:**
+   ```bash
+   git clone <repository-url>
+   cd EdMap
+   npm install
+   ```
+
+2. **Environment Variables:**
+   Create `.env.local` in the project root:
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+   ```
+
+3. **Database Setup:**
+   - Run migrations in Supabase SQL Editor:
+     - `supabase/migrations/001_create_profiles_table.sql`
+     - `supabase/migrations/002_create_core_tables.sql`
+
+4. **Start Development Server:**
+   ```bash
+   npm run dev
+   ```
+
+5. **Access the application:**
+   - Open http://localhost:3000
+   - Sign in with magic link authentication
+
+## 🎓 Demo Data Setup
+
+### Option 1: Automatic Seeding (Recommended)
+Run the automatic seed script in your Supabase SQL Editor:
+```sql
+-- Copy and paste the contents of scripts/seed-demo-data.sql
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Option 2: Manual Seeding
+1. Get your user ID:
+   ```sql
+   SELECT id FROM auth.users WHERE email = 'your-email@example.com';
+   ```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+2. Update `supabase/seed.sql` with your user ID (replace `USER_ID_HERE`)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+3. Run the seed script in Supabase SQL Editor
 
-## Learn More
+### What the Demo Data Creates:
+- **4 Courses**: Computer Science, Calculus I, Physics Lab, Academic Writing
+- **7 Sources**: Canvas, Gradescope, PrairieLearn, Lab Manual
+- **15 Items**: Assignments, quizzes, exams, projects, labs with realistic due dates
 
-To learn more about Next.js, take a look at the following resources:
+## 🧪 Testing
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Test Components Available:
+1. **TestQueryAndState**: Tests TanStack Query and Zustand state management
+2. **TestProfiles**: Tests user profile CRUD operations
+3. **TestCoreTables**: Tests basic course/source/item creation
+4. **TestSeedData**: Tests comprehensive demo data (NEW!)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### How to Test:
+1. Sign in to the application
+2. Navigate to the dashboard
+3. Use the test components to verify functionality
+4. Check the "Seed Data Test" component to see all demo data
 
-## Deploy on Vercel
+## 📊 Demo Data Features
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The seed script creates a realistic academic scenario with:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Courses:
+- **CS101**: Introduction to Computer Science (Blue)
+- **MATH201**: Calculus I (Green) 
+- **PHYS101L**: Physics Lab (Orange)
+- **ENG101**: Academic Writing (Purple)
+
+### Item Types:
+- Assignments (100-150 points, 90-240 min)
+- Quizzes (25-75 points, 30-60 min)
+- Exams (200-300 points, 120-180 min)
+- Projects (150-300 points, 300-600 min)
+- Labs (80 points, 120 min)
+- Reading (30 points, 45 min)
+
+### Item Statuses:
+- **Upcoming**: Items due in the future
+- **Submitted**: Items that have been turned in
+- **Graded**: Items that have been graded
+
+### Time Distribution:
+- Items due today/tomorrow
+- Items due this week
+- Items due next week
+- Items due in 2-4 weeks
+- Items due at the end of semester
+
+### Labels for Filtering:
+- Programming, Python, Quiz, Basics
+- Homework, Limits, Derivatives
+- Lab, Motion, Forces, Report
+- Essay, Argumentative, Research, Final
+
+## 🏗️ Architecture
+
+### Tech Stack:
+- **Frontend**: Next.js 14 (App Router)
+- **Database**: Supabase (PostgreSQL)
+- **Authentication**: Supabase Auth
+- **State Management**: Zustand + TanStack Query
+- **UI**: shadcn/ui + Tailwind CSS
+- **Graphs**: React Flow (upcoming)
+
+### Database Schema:
+```
+users (auth.users)
+├── profiles
+├── courses
+│   ├── sources
+│   │   └── items
+│   └── grades
+├── events
+├── integrations
+└── settings
+```
+
+## 🔧 Development
+
+### Project Structure:
+```
+src/
+├── app/                 # Next.js App Router pages
+├── components/          # React components
+│   ├── ui/             # shadcn/ui components
+│   ├── demo/           # Test components
+│   └── providers/      # Context providers
+├── lib/                # Utilities and configurations
+│   ├── auth.ts         # Authentication helpers
+│   ├── supabaseClient.ts # Supabase client setup
+│   └── db/             # Database queries
+├── state/              # Zustand stores
+└── types/              # TypeScript type definitions
+```
+
+### Key Files:
+- `supabase/migrations/`: Database schema migrations
+- `supabase/seed.sql`: Manual seed script
+- `scripts/seed-demo-data.sql`: Automatic seed script
+- `src/components/demo/TestSeedData.tsx`: Demo data test component
+
+## 🚧 Current Status
+
+### Completed:
+- ✅ Authentication (magic link)
+- ✅ User profiles with onboarding
+- ✅ Core database schema (courses, sources, items)
+- ✅ Row Level Security (RLS)
+- ✅ Basic CRUD operations
+- ✅ Demo data seeding
+- ✅ Test components
+
+### Next Steps:
+- 🔄 React Flow graph visualization
+- 🔄 Course system integrations (Canvas, etc.)
+- 🔄 Calendar view
+- 🔄 Planning algorithms
+
+## 🤝 Contributing
+
+1. Follow the coding protocol: write minimal, precise, testable code
+2. Complete one task at a time
+3. Test thoroughly before moving to the next task
+4. Commit to GitHub after each successful task
+
+## 📝 License
+
+This project is part of the EdMap academic planning system.
