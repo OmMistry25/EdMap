@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { TestQueryAndState } from "@/components/demo/TestQueryAndState"
+import { TestProfiles } from "@/components/demo/TestProfiles"
 import { getServerSession, signOut } from "@/lib/auth"
 
 export default async function Home() {
@@ -52,8 +53,11 @@ export default async function Home() {
             </p>
             <Button className="mb-6">Test shadcn/ui Button</Button>
             
-            {/* Demo component for TanStack Query and Zustand */}
-            <TestQueryAndState />
+            {/* Demo components */}
+            <div className="space-y-6">
+              <TestQueryAndState />
+              <TestProfiles />
+            </div>
           </div>
         </div>
       </div>
