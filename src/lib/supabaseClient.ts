@@ -1,6 +1,5 @@
 import { createBrowserClient } from '@supabase/ssr'
 import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
 
 export function createClient() {
   return createBrowserClient(
@@ -10,6 +9,7 @@ export function createClient() {
 }
 
 export async function createServerComponentClient() {
+  const { cookies } = await import('next/headers')
   const cookieStore = await cookies()
 
   return createServerClient(
@@ -37,6 +37,7 @@ export async function createServerComponentClient() {
 }
 
 export async function createRouteHandlerClient() {
+  const { cookies } = await import('next/headers')
   const cookieStore = await cookies()
 
   return createServerClient(

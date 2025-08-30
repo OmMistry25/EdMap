@@ -1,14 +1,48 @@
 import { Button } from "@/components/ui/button"
 import { TestQueryAndState } from "@/components/demo/TestQueryAndState"
+import { getServerSession, signOut } from "@/lib/auth"
 
-export default function Home() {
+export default async function Home() {
+  const user = await getServerSession()
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            Welcome to EdMap
+          </h1>
+          <p className="text-lg text-gray-600 mb-8">
+            Visual Academic Planner - Connect your course systems and see your semester as an interactive flowchart
+          </p>
+          <Button asChild>
+            <a href="/auth/signin">Sign In</a>
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            EdMap Dashboard
-          </h1>
+          <div className="flex justify-between items-center mb-8">
+            <h1 className="text-4xl font-bold text-gray-900">
+              EdMap Dashboard
+            </h1>
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-gray-600">
+                Signed in as: {user.email}
+              </span>
+              <form action={async () => { 'use server'; await signOut() }}>
+                <Button type="submit" variant="outline" size="sm">
+                  Sign Out
+                </Button>
+              </form>
+            </div>
+          </div>
+          
           <p className="text-lg text-gray-600 mb-8">
             Visual Academic Planner - Connect your course systems and see your semester as an interactive flowchart
           </p>
