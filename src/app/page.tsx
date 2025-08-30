@@ -2,6 +2,8 @@ import { Button } from "@/components/ui/button"
 import { TestQueryAndState } from "@/components/demo/TestQueryAndState"
 import { TestProfiles } from "@/components/demo/TestProfiles"
 import { getServerSession, signOut } from "@/lib/auth"
+import { getProfile } from "@/lib/db/queries"
+import { redirect } from "next/navigation"
 
 export default async function Home() {
   const user = await getServerSession()
@@ -22,6 +24,12 @@ export default async function Home() {
         </div>
       </div>
     )
+  }
+
+  // Check if user has completed onboarding
+  const profile = await getProfile(user.id)
+  if (!profile?.onboarding_done_at) {
+    redirect('/connect')
   }
 
   return (

@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabaseClient'
+import type { User, Session } from '@supabase/supabase-js'
 
 export default function DebugPage() {
-  const [session, setSession] = useState<any>(null)
-  const [user, setUser] = useState<any>(null)
+  const [session, setSession] = useState<Session | null>(null)
+  const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
