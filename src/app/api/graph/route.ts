@@ -85,76 +85,47 @@ export async function GET() {
     const nodes: GraphNode[] = []
     const edges: GraphEdge[] = []
     
-    // Node dimensions and spacing
+        // Node dimensions and spacing
     const COURSE_WIDTH = 250
     const SOURCE_WIDTH = 200
     const ITEM_WIDTH = 220
-    const HORIZONTAL_SPACING = 100
-    const VERTICAL_SPACING = 150
+    const HORIZONTAL_SPACING = 120
+    const VERTICAL_SPACING = 200
+    const ITEM_VERTICAL_SPACING = 250
+
+    // Calculate total layout dimensions
+    const courseCount = courses?.length || 0
+    const totalWidth = courseCount * (COURSE_WIDTH + HORIZONTAL_SPACING) - HORIZONTAL_SPACING
     
-    // Track positions for each course column
-    const courseColumns: { [courseId: string]: { 
-      x: number; 
-      sources: { id: string; items: typeof items; x: number; y: number; height: number }[];
-      maxSourceWidth: number;
-      totalHeight: number;
-    } } = {}
-    
-    let currentX = 0
-    
-    // First pass: calculate layout for each course
+    // Calculate maximum height needed for any course
+    let maxCourseHeight = 0
     courses?.forEach((course) => {
       const courseSources = sources?.filter(s => s.course_id === course.id) || []
-      const sourceLayouts = courseSources.map((source, sourceIndex) => {
+      let courseHeight = VERTICAL_SPACING // Space for course node
+      
+      courseSources.forEach((source) => {
         const sourceItems = items?.filter(i => i.source_id === source.id) || []
-        const sourceX = sourceIndex * (SOURCE_WIDTH + HORIZONTAL_SPACING)
-        const sourceY = VERTICAL_SPACING
+        courseHeight += VERTICAL_SPACING // Space for source node
         
-        // Calculate height needed for this source's items
+        // Calculate items height
         const maxItemsPerRow = 2
         const itemRows = Math.ceil(sourceItems.length / maxItemsPerRow)
-        const sourceHeight = VERTICAL_SPACING + (itemRows * 200) // 200px per row of items
-        
-        return { 
-          id: source.id, 
-          items: sourceItems, 
-          x: sourceX, 
-          y: sourceY,
-          height: sourceHeight
-        }
+        courseHeight += itemRows * ITEM_VERTICAL_SPACING
       })
       
-      // Calculate width needed for this course column
-      const sourceCount = sourceLayouts.length
-      const maxSourceWidth = Math.max(
-        SOURCE_WIDTH, // Minimum source width
-        sourceCount * (SOURCE_WIDTH + HORIZONTAL_SPACING) - HORIZONTAL_SPACING // Width needed for sources
-      )
-      
-      // Calculate total height needed for this course
-      const totalHeight = Math.max(...sourceLayouts.map(s => s.height)) + VERTICAL_SPACING
-      
-      courseColumns[course.id] = {
-        x: currentX,
-        sources: sourceLayouts,
-        maxSourceWidth: maxSourceWidth,
-        totalHeight: totalHeight
-      }
-      
-      currentX += Math.max(COURSE_WIDTH, maxSourceWidth) + HORIZONTAL_SPACING
+      maxCourseHeight = Math.max(maxCourseHeight, courseHeight)
     })
     
-    // Second pass: create nodes with calculated positions
-    courses?.forEach((course) => {
-      const column = courseColumns[course.id]
-      if (!column) return
+        // Create nodes with simple grid layout
+    courses?.forEach((course, courseIndex) => {
+      const courseX = courseIndex * (COURSE_WIDTH + HORIZONTAL_SPACING)
       
       // Add course node
       const courseNodeId = `course-${course.id}`
       nodes.push({
         id: courseNodeId,
         type: 'course',
-        position: { x: column.x, y: 0 },
+        position: { x: courseX, y: 0 },
         data: {
           label: course.title,
           title: course.title,
@@ -164,42 +135,43 @@ export async function GET() {
         }
       })
       
-             // Add source nodes for this course
-       column.sources.forEach((sourceLayout) => {
-         const source = sources?.find(s => s.id === sourceLayout.id)
-         if (!source) return
-         
-         const sourceX = column.x + sourceLayout.x
-         const sourceY = sourceLayout.y
-         const sourceNodeId = `source-${source.id}`
-         
-         nodes.push({
-           id: sourceNodeId,
-           type: 'source',
-           position: { x: sourceX, y: sourceY },
-           data: {
-             label: source.display_name,
-             provider: source.provider
-           }
-         })
-         
-         // Add edge from course to source
-         edges.push({
-           id: `edge-${courseNodeId}-${sourceNodeId}`,
-           source: courseNodeId,
-           target: sourceNodeId,
-           type: 'smoothstep'
-         })
-         
-         // Add item nodes for this source
-         const maxItemsPerRow = 2
-         const ITEM_VERTICAL_SPACING = 200 // Large spacing for items
-         sourceLayout.items.forEach((item, itemIndex) => {
-           const row = Math.floor(itemIndex / maxItemsPerRow)
-           const col = itemIndex % maxItemsPerRow
-           
-           const itemX = sourceX + (col * (ITEM_WIDTH + HORIZONTAL_SPACING))
-           const itemY = sourceY + VERTICAL_SPACING + (row * ITEM_VERTICAL_SPACING)
+      // Add sources and items for this course
+      const courseSources = sources?.filter(s => s.course_id === course.id) || []
+      let currentY = VERTICAL_SPACING
+      
+      courseSources.forEach((source, sourceIndex) => {
+        // Add source node
+        const sourceNodeId = `source-${source.id}`
+        nodes.push({
+          id: sourceNodeId,
+          type: 'source',
+          position: { x: courseX, y: currentY },
+          data: {
+            label: source.display_name,
+            provider: source.provider
+          }
+        })
+        
+        // Add edge from course to source
+        edges.push({
+          id: `edge-${courseNodeId}-${sourceNodeId}`,
+          source: courseNodeId,
+          target: sourceNodeId,
+          type: 'smoothstep'
+        })
+        
+        currentY += VERTICAL_SPACING
+        
+        // Add items for this source
+        const sourceItems = items?.filter(i => i.source_id === source.id) || []
+        const maxItemsPerRow = 2
+        
+        sourceItems.forEach((item, itemIndex) => {
+          const row = Math.floor(itemIndex / maxItemsPerRow)
+          const col = itemIndex % maxItemsPerRow
+          
+          const itemX = courseX + (col * (ITEM_WIDTH + 50)) // Smaller horizontal spacing for items
+          const itemY = currentY + (row * ITEM_VERTICAL_SPACING)
           
           const itemNodeId = `item-${item.id}`
           
@@ -227,6 +199,10 @@ export async function GET() {
             type: 'smoothstep'
           })
         })
+        
+        // Move to next source position
+        const itemRows = Math.ceil(sourceItems.length / maxItemsPerRow)
+        currentY += itemRows * ITEM_VERTICAL_SPACING + VERTICAL_SPACING
       })
     })
     
