@@ -3,6 +3,7 @@ import { TestQueryAndState } from "@/components/demo/TestQueryAndState"
 import { TestProfiles } from "@/components/demo/TestProfiles"
 import { TestCoreTables } from "@/components/demo/TestCoreTables"
 import { TestSeedData } from "@/components/demo/TestSeedData"
+import { TestGraph } from "@/components/demo/TestGraph"
 import { getServerSession, signOut } from "@/lib/auth"
 import { getProfile } from "@/lib/db/queries"
 import { redirect } from "next/navigation"
@@ -69,6 +70,7 @@ export default async function Home() {
               <TestProfiles />
               <TestCoreTables />
               <TestSeedData />
+              <TestGraph />
             </div>
           </div>
         </div>
