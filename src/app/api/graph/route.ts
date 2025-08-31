@@ -85,42 +85,21 @@ export async function GET() {
     const nodes: GraphNode[] = []
     const edges: GraphEdge[] = []
     
-        // Node dimensions and spacing
-    const COURSE_WIDTH = 250
-    const SOURCE_WIDTH = 200
-    const ITEM_WIDTH = 220
-    const HORIZONTAL_SPACING = 120
-    const VERTICAL_SPACING = 200
-    const ITEM_VERTICAL_SPACING = 250
-
-    // Calculate total layout dimensions
-    const courseCount = courses?.length || 0
-    const totalWidth = courseCount * (COURSE_WIDTH + HORIZONTAL_SPACING) - HORIZONTAL_SPACING
+        // Tree layout dimensions
+    const COURSE_WIDTH = 300
+    const SOURCE_WIDTH = 250
+    const ITEM_WIDTH = 280
+    const COURSE_HORIZONTAL_SPACING = 500  // Space between course columns
+    const SOURCE_VERTICAL_SPACING = 200    // Space from course to sources
+    const ITEM_VERTICAL_SPACING = 150      // Space from source to items
+    const SOURCE_HORIZONTAL_SPACING = 300  // Space between sources under same course
+    const ITEM_HORIZONTAL_SPACING = 200    // Space between items under same source
     
-    // Calculate maximum height needed for any course
-    let maxCourseHeight = 0
-    courses?.forEach((course) => {
-      const courseSources = sources?.filter(s => s.course_id === course.id) || []
-      let courseHeight = VERTICAL_SPACING // Space for course node
-      
-      courseSources.forEach((source) => {
-        const sourceItems = items?.filter(i => i.source_id === source.id) || []
-        courseHeight += VERTICAL_SPACING // Space for source node
-        
-        // Calculate items height
-        const maxItemsPerRow = 2
-        const itemRows = Math.ceil(sourceItems.length / maxItemsPerRow)
-        courseHeight += itemRows * ITEM_VERTICAL_SPACING
-      })
-      
-      maxCourseHeight = Math.max(maxCourseHeight, courseHeight)
-    })
-    
-        // Create nodes with simple grid layout
+        // Create hierarchical tree layout
     courses?.forEach((course, courseIndex) => {
-      const courseX = courseIndex * (COURSE_WIDTH + HORIZONTAL_SPACING)
+      const courseX = courseIndex * COURSE_HORIZONTAL_SPACING
       
-      // Add course node
+      // Add course node at the top
       const courseNodeId = `course-${course.id}`
       nodes.push({
         id: courseNodeId,
@@ -135,17 +114,23 @@ export async function GET() {
         }
       })
       
-      // Add sources and items for this course
+      // Get sources for this course
       const courseSources = sources?.filter(s => s.course_id === course.id) || []
-      let currentY = VERTICAL_SPACING
       
+      // Calculate total width needed for sources
+      const totalSourceWidth = (courseSources.length - 1) * SOURCE_HORIZONTAL_SPACING
+      const startSourceX = courseX - (totalSourceWidth / 2)
+      
+      // Add sources branching out from course
       courseSources.forEach((source, sourceIndex) => {
-        // Add source node
+        const sourceX = startSourceX + (sourceIndex * SOURCE_HORIZONTAL_SPACING)
+        const sourceY = SOURCE_VERTICAL_SPACING
+        
         const sourceNodeId = `source-${source.id}`
         nodes.push({
           id: sourceNodeId,
           type: 'source',
-          position: { x: courseX, y: currentY },
+          position: { x: sourceX, y: sourceY },
           data: {
             label: source.display_name,
             provider: source.provider
@@ -160,21 +145,19 @@ export async function GET() {
           type: 'smoothstep'
         })
         
-        currentY += VERTICAL_SPACING
-        
-        // Add items for this source
+        // Get items for this source
         const sourceItems = items?.filter(i => i.source_id === source.id) || []
-        const maxItemsPerRow = 2
         
+        // Calculate total width needed for items
+        const totalItemWidth = (sourceItems.length - 1) * ITEM_HORIZONTAL_SPACING
+        const startItemX = sourceX - (totalItemWidth / 2)
+        
+        // Add items branching out from source
         sourceItems.forEach((item, itemIndex) => {
-          const row = Math.floor(itemIndex / maxItemsPerRow)
-          const col = itemIndex % maxItemsPerRow
-          
-          const itemX = courseX + (col * (ITEM_WIDTH + 50)) // Smaller horizontal spacing for items
-          const itemY = currentY + (row * ITEM_VERTICAL_SPACING)
+          const itemX = startItemX + (itemIndex * ITEM_HORIZONTAL_SPACING)
+          const itemY = sourceY + ITEM_VERTICAL_SPACING
           
           const itemNodeId = `item-${item.id}`
-          
           nodes.push({
             id: itemNodeId,
             type: 'item',
@@ -199,10 +182,6 @@ export async function GET() {
             type: 'smoothstep'
           })
         })
-        
-        // Move to next source position
-        const itemRows = Math.ceil(sourceItems.length / maxItemsPerRow)
-        currentY += itemRows * ITEM_VERTICAL_SPACING + VERTICAL_SPACING
       })
     })
     
