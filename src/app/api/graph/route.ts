@@ -85,26 +85,82 @@ export async function GET() {
     const nodes: GraphNode[] = []
     const edges: GraphEdge[] = []
     
-        // Tree layout dimensions
+        // Tree layout dimensions with MUCH MORE AGGRESSIVE spacing
     const COURSE_WIDTH = 300
     const SOURCE_WIDTH = 250
     const ITEM_WIDTH = 280
-    const COURSE_HORIZONTAL_SPACING = 500  // Space between course columns
-    const SOURCE_VERTICAL_SPACING = 200    // Space from course to sources
-    const ITEM_VERTICAL_SPACING = 150      // Space from source to items
-    const SOURCE_HORIZONTAL_SPACING = 300  // Space between sources under same course
-    const ITEM_HORIZONTAL_SPACING = 200    // Space between items under same source
+    const COURSE_HORIZONTAL_SPACING = 800  // Much larger space between course columns
+    const SOURCE_VERTICAL_SPACING = 250    // More space from course to sources
+    const ITEM_VERTICAL_SPACING = 200      // More space from source to items
+    const SOURCE_HORIZONTAL_SPACING = 400  // Much larger space between sources
+    const ITEM_HORIZONTAL_SPACING = 350    // Much larger space between items
     
-        // Create hierarchical tree layout
+        // Helper function to check if two rectangles overlap
+    const rectanglesOverlap = (rect1: { x: number; y: number; width: number; height: number }, 
+                              rect2: { x: number; y: number; width: number; height: number }) => {
+      return !(rect1.x + rect1.width < rect2.x || 
+               rect2.x + rect2.width < rect1.x || 
+               rect1.y + rect1.height < rect2.y || 
+               rect2.y + rect2.height < rect1.y)
+    }
+
+    // Helper function to find non-overlapping position
+    const findNonOverlappingPosition = (x: number, y: number, width: number, height: number, 
+                                       existingRects: Array<{ x: number; y: number; width: number; height: number }>) => {
+      let testX = x
+      let testY = y
+      let attempts = 0
+      const maxAttempts = 50
+      
+      while (attempts < maxAttempts) {
+        const testRect = { x: testX, y: testY, width, height }
+        let hasOverlap = false
+        
+        for (const existingRect of existingRects) {
+          if (rectanglesOverlap(testRect, existingRect)) {
+            hasOverlap = true
+            break
+          }
+        }
+        
+        if (!hasOverlap) {
+          return { x: testX, y: testY }
+        }
+        
+        // Try different positions
+        if (attempts % 4 === 0) {
+          testX += 50
+        } else if (attempts % 4 === 1) {
+          testX -= 50
+        } else if (attempts % 4 === 2) {
+          testY += 50
+        } else {
+          testY -= 50
+        }
+        
+        attempts++
+      }
+      
+      // If we can't find a non-overlapping position, return the original with some offset
+      return { x: x + attempts * 10, y: y + attempts * 10 }
+    }
+
+    // Track all placed rectangles for collision detection
+    const placedRects: Array<{ x: number; y: number; width: number; height: number }> = []
+
+    // Create hierarchical tree layout with collision detection
     courses?.forEach((course, courseIndex) => {
       const courseX = courseIndex * COURSE_HORIZONTAL_SPACING
       
       // Add course node at the top
       const courseNodeId = `course-${course.id}`
+      const coursePosition = findNonOverlappingPosition(courseX, 0, COURSE_WIDTH, 100, placedRects)
+      placedRects.push({ x: coursePosition.x, y: coursePosition.y, width: COURSE_WIDTH, height: 100 })
+      
       nodes.push({
         id: courseNodeId,
         type: 'course',
-        position: { x: courseX, y: 0 },
+        position: coursePosition,
         data: {
           label: course.title,
           title: course.title,
@@ -123,14 +179,17 @@ export async function GET() {
       
       // Add sources branching out from course
       courseSources.forEach((source, sourceIndex) => {
-        const sourceX = startSourceX + (sourceIndex * SOURCE_HORIZONTAL_SPACING)
-        const sourceY = SOURCE_VERTICAL_SPACING
+        const baseSourceX = startSourceX + (sourceIndex * SOURCE_HORIZONTAL_SPACING)
+        const baseSourceY = SOURCE_VERTICAL_SPACING
+        
+        const sourcePosition = findNonOverlappingPosition(baseSourceX, baseSourceY, SOURCE_WIDTH, 120, placedRects)
+        placedRects.push({ x: sourcePosition.x, y: sourcePosition.y, width: SOURCE_WIDTH, height: 120 })
         
         const sourceNodeId = `source-${source.id}`
         nodes.push({
           id: sourceNodeId,
           type: 'source',
-          position: { x: sourceX, y: sourceY },
+          position: sourcePosition,
           data: {
             label: source.display_name,
             provider: source.provider
@@ -150,18 +209,21 @@ export async function GET() {
         
         // Calculate total width needed for items
         const totalItemWidth = (sourceItems.length - 1) * ITEM_HORIZONTAL_SPACING
-        const startItemX = sourceX - (totalItemWidth / 2)
+        const startItemX = sourcePosition.x - (totalItemWidth / 2)
         
         // Add items branching out from source
         sourceItems.forEach((item, itemIndex) => {
-          const itemX = startItemX + (itemIndex * ITEM_HORIZONTAL_SPACING)
-          const itemY = sourceY + ITEM_VERTICAL_SPACING
+          const baseItemX = startItemX + (itemIndex * ITEM_HORIZONTAL_SPACING)
+          const baseItemY = sourcePosition.y + ITEM_VERTICAL_SPACING
+          
+          const itemPosition = findNonOverlappingPosition(baseItemX, baseItemY, ITEM_WIDTH, 150, placedRects)
+          placedRects.push({ x: itemPosition.x, y: itemPosition.y, width: ITEM_WIDTH, height: 150 })
           
           const itemNodeId = `item-${item.id}`
           nodes.push({
             id: itemNodeId,
             type: 'item',
-            position: { x: itemX, y: itemY },
+            position: itemPosition,
             data: {
               label: item.title,
               title: item.title,
