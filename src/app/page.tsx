@@ -4,6 +4,7 @@ import { TestProfiles } from "@/components/demo/TestProfiles"
 import { TestCoreTables } from "@/components/demo/TestCoreTables"
 import { TestSeedData } from "@/components/demo/TestSeedData"
 import { TestGraph } from "@/components/demo/TestGraph"
+import { ManualItemForm } from "@/components/forms/ManualItemForm"
 import { getServerSession, signOut } from "@/lib/auth"
 import { getProfile } from "@/lib/db/queries"
 import { redirect } from "next/navigation"
@@ -59,10 +60,10 @@ export default async function Home() {
             Visual Academic Planner - Connect your course systems and see your semester as an interactive flowchart
           </p>
           <div className="bg-white rounded-lg shadow p-8">
-            <p className="text-gray-500 mb-4">
-              Dashboard placeholder - Course connections and graph will appear here
-            </p>
-            <Button className="mb-6">Test shadcn/ui Button</Button>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-semibold text-gray-900">Academic Dashboard</h2>
+              <ManualItemForm />
+            </div>
             
             {/* Demo components */}
             <div className="space-y-6">

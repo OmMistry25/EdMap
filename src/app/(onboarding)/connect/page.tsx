@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { ManualItemForm } from '@/components/forms/ManualItemForm'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { CheckCircle, XCircle } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
@@ -118,6 +119,36 @@ function OnboardingContent() {
       alert('Connection failed. Please try again.')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleCanvasSync = async () => {
+    setSyncing(true)
+    
+    try {
+      const response = await fetch('/api/integrations/canvas/sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        alert(`Canvas sync completed successfully!\n\nStats:\n- ${data.stats.itemsCreated} items created\n- ${data.stats.itemsUpdated} items updated\n- ${data.stats.coursesCreated} courses created\n- ${data.stats.coursesUpdated} courses updated`)
+        
+        // Redirect to main page to see the data
+        router.push('/')
+      } else {
+        console.error('Canvas sync failed:', data.error)
+        alert(`Sync failed: ${data.error}`)
+      }
+    } catch (error) {
+      console.error('Canvas sync error:', error)
+      alert('Sync failed. Please try again.')
+    } finally {
+      setSyncing(false)
     }
   }
 
@@ -263,14 +294,35 @@ function OnboardingContent() {
                 <p className="text-sm text-gray-600 mb-4">
                   Connect your Canvas LMS to import assignments, quizzes, and events.
                 </p>
-                <Button 
-                  variant={hasCanvasIntegration ? "outline" : "default"}
-                  className="w-full"
-                  onClick={handleCanvasConnect}
-                  disabled={submitting}
-                >
-                  {submitting ? 'Connecting...' : hasCanvasIntegration ? 'Reconnect Canvas' : 'Connect Canvas'}
-                </Button>
+                {hasCanvasIntegration ? (
+                  <div className="space-y-2">
+                    <Button 
+                      variant="outline"
+                      className="w-full"
+                      onClick={handleCanvasConnect}
+                      disabled={submitting}
+                    >
+                      {submitting ? 'Connecting...' : 'Reconnect Canvas'}
+                    </Button>
+                    <Button 
+                      variant="default"
+                      className="w-full"
+                      onClick={handleCanvasSync}
+                      disabled={syncing}
+                    >
+                      {syncing ? 'Syncing...' : 'Sync Canvas Data'}
+                    </Button>
+                  </div>
+                ) : (
+                  <Button 
+                    variant="default"
+                    className="w-full"
+                    onClick={handleCanvasConnect}
+                    disabled={submitting}
+                  >
+                    {submitting ? 'Connecting...' : 'Connect Canvas'}
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -332,9 +384,7 @@ function OnboardingContent() {
                 <p className="text-sm text-gray-600 mb-4">
                   Add courses and assignments manually or upload ICS files.
                 </p>
-                <Button variant="outline" className="w-full" disabled>
-                  Coming Soon
-                </Button>
+                <ManualItemForm className="w-full" />
               </div>
             </div>
           </div>

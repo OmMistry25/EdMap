@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@/lib/supabaseClient'
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     const supabase = await createRouteHandlerClient()
     
@@ -293,24 +293,27 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       console.error('Canvas sync error:', error)
 
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+
       // Update sync run as failed
       await supabase
         .from('sync_runs')
         .update({
           status: 'failed',
           completed_at: new Date().toISOString(),
-          error_message: error.message
+          error_message: errorMessage
         })
         .eq('id', syncRun.id)
 
       return NextResponse.json({ 
         error: 'Failed to sync Canvas data',
-        details: error.message 
+        details: errorMessage 
       }, { status: 500 })
     }
 
   } catch (error) {
     console.error('Canvas sync error:', error)
-    return NextResponse.json({ error: 'Failed to sync Canvas data' }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json({ error: 'Failed to sync Canvas data', details: errorMessage }, { status: 500 })
   }
 }
