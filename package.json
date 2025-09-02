@@ -19,6 +19,7 @@
     "dotenv": "^17.2.1",
     "lucide-react": "^0.542.0",
     "next": "15.5.2",
+    "node-ical": "^0.20.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "reactflow": "^11.11.4",
@@ -28,6 +29,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@types/ical": "^0.8.3",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ManualItemForm } from '@/components/forms/ManualItemForm'
+import { ICSImportForm } from '@/components/forms/ICSImportForm'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { CheckCircle, XCircle } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
@@ -384,7 +385,10 @@ function OnboardingContent() {
                 <p className="text-sm text-gray-600 mb-4">
                   Add courses and assignments manually or upload ICS files.
                 </p>
-                <ManualItemForm className="w-full" />
+                <div className="space-y-2">
+                  <ManualItemForm className="w-full" />
+                  <ICSImportForm className="w-full" />
+                </div>
               </div>
             </div>
           </div>

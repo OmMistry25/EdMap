@@ -1,10 +1,7 @@
 import { Button } from "@/components/ui/button"
-import { TestQueryAndState } from "@/components/demo/TestQueryAndState"
-import { TestProfiles } from "@/components/demo/TestProfiles"
-import { TestCoreTables } from "@/components/demo/TestCoreTables"
-import { TestSeedData } from "@/components/demo/TestSeedData"
 import { TestGraph } from "@/components/demo/TestGraph"
 import { ManualItemForm } from "@/components/forms/ManualItemForm"
+import { ICSImportForm } from "@/components/forms/ICSImportForm"
 import { getServerSession, signOut } from "@/lib/auth"
 import { getProfile } from "@/lib/db/queries"
 import { redirect } from "next/navigation"
@@ -62,15 +59,14 @@ export default async function Home() {
           <div className="bg-white rounded-lg shadow p-8">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-semibold text-gray-900">Academic Dashboard</h2>
-              <ManualItemForm />
+              <div className="flex gap-2">
+                <ICSImportForm />
+                <ManualItemForm />
+              </div>
             </div>
             
-            {/* Demo components */}
+            {/* Main content */}
             <div className="space-y-6">
-              <TestQueryAndState />
-              <TestProfiles />
-              <TestCoreTables />
-              <TestSeedData />
               <TestGraph />
             </div>
           </div>
