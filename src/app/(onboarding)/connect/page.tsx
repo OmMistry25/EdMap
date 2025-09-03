@@ -17,8 +17,11 @@ function OnboardingContent() {
   const [loading, setLoading] = useState(true)
   const [integrations, setIntegrations] = useState<Array<{ id: string; provider: string; display_name: string; is_active: boolean }>>([])
   const [showCanvasForm, setShowCanvasForm] = useState(false)
+  const [showPrairieLearnForm, setShowPrairieLearnForm] = useState(false)
   const [accessToken, setAccessToken] = useState('')
   const [canvasUrl, setCanvasUrl] = useState('https://canvas.instructure.com')
+  const [prairieLearnToken, setPrairieLearnToken] = useState('')
+  const [prairieLearnUrl, setPrairieLearnUrl] = useState('https://prairielearn.illinois.edu')
   const [submitting, setSubmitting] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const router = useRouter()
@@ -147,6 +150,82 @@ function OnboardingContent() {
       }
     } catch (error) {
       console.error('Canvas sync error:', error)
+      alert('Sync failed. Please try again.')
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  const handlePrairieLearnConnect = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSubmitting(true)
+    
+    try {
+      const response = await fetch('/api/integrations/prairielearn/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          accessToken: prairieLearnToken,
+          prairieLearnUrl
+        })
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        // Refresh integrations list
+        const supabase = createClient()
+        const { data: newIntegrations } = await supabase
+          .from('integrations')
+          .select('*')
+          .eq('owner_id', user?.id)
+          .eq('is_active', true)
+        
+        setIntegrations(newIntegrations || [])
+        setShowPrairieLearnForm(false)
+        setPrairieLearnToken('')
+        setPrairieLearnUrl('https://prairielearn.illinois.edu')
+        
+        // Show success message
+        alert('PrairieLearn connected successfully!')
+      } else {
+        console.error('PrairieLearn connection failed:', data.error)
+        alert(`Connection failed: ${data.error}`)
+      }
+    } catch (error) {
+      console.error('PrairieLearn connection error:', error)
+      alert('Connection failed. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handlePrairieLearnSync = async () => {
+    setSyncing(true)
+    
+    try {
+      const response = await fetch('/api/integrations/prairielearn/sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        alert(`PrairieLearn sync completed successfully!\n\nStats:\n- ${data.stats.itemsCreated} items created\n- ${data.stats.itemsUpdated} items updated\n- ${data.stats.coursesCreated} courses created\n- ${data.stats.coursesUpdated} courses updated`)
+        
+        // Redirect to main page to see the data
+        router.push('/')
+      } else {
+        console.error('PrairieLearn sync failed:', data.error)
+        alert(`Sync failed: ${data.error}`)
+      }
+    } catch (error) {
+      console.error('PrairieLearn sync error:', error)
       alert('Sync failed. Please try again.')
     } finally {
       setSyncing(false)
@@ -344,18 +423,53 @@ function OnboardingContent() {
             </div>
 
             {/* PrairieLearn */}
-            <div className="border border-gray-200 rounded-lg p-6 hover:border-purple-300 transition-colors">
+            <div className={`border border-gray-200 rounded-lg p-6 hover:border-purple-300 transition-colors ${
+              integrations.some(i => i.provider === 'prairielearn') ? 'ring-2 ring-green-500' : ''
+            }`}>
               <div className="text-center">
                 <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
                   <span className="text-purple-600 font-semibold">P</span>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">PrairieLearn</h3>
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <h3 className="text-lg font-semibold text-gray-900">PrairieLearn</h3>
+                  {integrations.some(i => i.provider === 'prairielearn') && (
+                    <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">
+                      Connected
+                    </Badge>
+                  )}
+                </div>
                 <p className="text-sm text-gray-600 mb-4">
                   Connect PrairieLearn for homework and assessment tracking.
                 </p>
-                <Button variant="outline" className="w-full" disabled>
-                  Coming Soon
-                </Button>
+                {integrations.some(i => i.provider === 'prairielearn') ? (
+                  <div className="space-y-2">
+                    <Button 
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => setShowPrairieLearnForm(true)}
+                      disabled={submitting}
+                    >
+                      {submitting ? 'Connecting...' : 'Reconnect PrairieLearn'}
+                    </Button>
+                    <Button 
+                      variant="default"
+                      className="w-full"
+                      onClick={handlePrairieLearnSync}
+                      disabled={syncing}
+                    >
+                      {syncing ? 'Syncing...' : 'Sync PrairieLearn Data'}
+                    </Button>
+                  </div>
+                ) : (
+                  <Button 
+                    variant="default"
+                    className="w-full"
+                    onClick={() => setShowPrairieLearnForm(true)}
+                    disabled={submitting}
+                  >
+                    {submitting ? 'Connecting...' : 'Connect PrairieLearn'}
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -432,6 +546,62 @@ function OnboardingContent() {
                       type="button"
                       variant="outline"
                       onClick={() => setShowCanvasForm(false)}
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={submitting}
+                      className="flex-1"
+                    >
+                      {submitting ? 'Connecting...' : 'Connect'}
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* PrairieLearn Access Token Form Modal */}
+          {showPrairieLearnForm && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+                <h3 className="text-lg font-semibold mb-4">Connect PrairieLearn</h3>
+                <form onSubmit={handlePrairieLearnConnect} className="space-y-4">
+                  <div>
+                    <Label htmlFor="prairieLearnUrl">PrairieLearn URL</Label>
+                    <Input
+                      id="prairieLearnUrl"
+                      type="url"
+                      value={prairieLearnUrl}
+                      onChange={(e) => setPrairieLearnUrl(e.target.value)}
+                      placeholder="https://prairielearn.illinois.edu"
+                      required
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Leave as default if using PrairieLearn Illinois
+                    </p>
+                  </div>
+                  <div>
+                    <Label htmlFor="prairieLearnToken">Access Token</Label>
+                    <Input
+                      id="prairieLearnToken"
+                      type="password"
+                      value={prairieLearnToken}
+                      onChange={(e) => setPrairieLearnToken(e.target.value)}
+                      placeholder="Enter your PrairieLearn access token"
+                      required
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Generate this from your PrairieLearn profile settings
+                    </p>
+                  </div>
+                  <div className="flex gap-2 pt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowPrairieLearnForm(false)}
                       className="flex-1"
                     >
                       Cancel
