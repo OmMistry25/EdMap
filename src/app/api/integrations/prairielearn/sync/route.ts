@@ -42,10 +42,21 @@ export async function POST() {
       return NextResponse.json({ error: 'PrairieLearn access token not found' }, { status: 404 })
     }
 
-    // Normalize the PrairieLearn URL to ensure it ends with /pl
-    if (!prairieLearnUrl.endsWith('/pl')) {
-      prairieLearnUrl = prairieLearnUrl.endsWith('/') ? `${prairieLearnUrl}pl` : `${prairieLearnUrl}/pl`
+    // Normalize the PrairieLearn URL - don't automatically add /pl
+    if (prairieLearnUrl.includes('/pl/api/v1')) {
+      // Extract the base URL up to /pl
+      const plIndex = prairieLearnUrl.indexOf('/pl')
+      if (plIndex !== -1) {
+        prairieLearnUrl = prairieLearnUrl.substring(0, plIndex + 3) // +3 to include /pl
+      }
+    } else if (prairieLearnUrl.includes('/pl')) {
+      // URL already contains /pl, use as-is
+      prairieLearnUrl = prairieLearnUrl
+    } else if (prairieLearnUrl.endsWith('/pl')) {
+      // URL already ends with /pl, use as-is
+      prairieLearnUrl = prairieLearnUrl
     }
+    // Don't automatically add /pl - let users specify the exact URL they want
 
     console.log('Using PrairieLearn URL:', prairieLearnUrl)
 

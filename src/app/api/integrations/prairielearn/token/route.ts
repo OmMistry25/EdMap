@@ -17,13 +17,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Access token is required' }, { status: 400 })
     }
 
-    // Normalize the PrairieLearn URL to ensure it ends with /pl
-    let normalizedUrl = prairieLearnUrl || 'https://prairielearn.illinois.edu'
+    // Normalize the PrairieLearn URL - don't automatically add /pl
+    let normalizedUrl = prairieLearnUrl
     
-    // Ensure URL ends with /pl for API calls
-    if (!normalizedUrl.endsWith('/pl')) {
-      normalizedUrl = normalizedUrl.endsWith('/') ? `${normalizedUrl}pl` : `${normalizedUrl}/pl`
+    // Only add /pl if the user explicitly wants it and it's not already there
+    // This allows users to specify the exact base URL they want to use
+    if (normalizedUrl.includes('/pl/api/v1')) {
+      // Extract the base URL up to /pl
+      const plIndex = normalizedUrl.indexOf('/pl')
+      if (plIndex !== -1) {
+        normalizedUrl = normalizedUrl.substring(0, plIndex + 3) // +3 to include /pl
+      }
+    } else if (normalizedUrl.includes('/pl')) {
+      // URL already contains /pl, use as-is
+      normalizedUrl = normalizedUrl
+    } else if (normalizedUrl.endsWith('/pl')) {
+      // URL already ends with /pl, use as-is
+      normalizedUrl = normalizedUrl
     }
+    // Don't automatically add /pl - let users specify the exact URL they want
 
     console.log('=== PRAIRIELEARN CONNECTION DEBUG ===')
     console.log('Original URL:', prairieLearnUrl)

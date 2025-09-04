@@ -8,11 +8,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'URL and token are required' }, { status: 400 })
     }
 
-    // Normalize the PrairieLearn URL to ensure it ends with /pl
+    // Normalize the PrairieLearn URL - don't automatically add /pl
     let normalizedUrl = prairieLearnUrl
-    if (!normalizedUrl.endsWith('/pl')) {
-      normalizedUrl = prairieLearnUrl.endsWith('/') ? `${prairieLearnUrl}pl` : `${prairieLearnUrl}/pl`
+    
+    // Only add /pl if the user explicitly wants it and it's not already there
+    // This allows users to specify the exact base URL they want to use
+    if (normalizedUrl.includes('/pl/api/v1')) {
+      // Extract the base URL up to /pl
+      const plIndex = normalizedUrl.indexOf('/pl')
+      if (plIndex !== -1) {
+        normalizedUrl = normalizedUrl.substring(0, plIndex + 3) // +3 to include /pl
+      }
+    } else if (normalizedUrl.includes('/pl')) {
+      // URL already contains /pl, use as-is
+      normalizedUrl = normalizedUrl
+    } else if (normalizedUrl.endsWith('/pl')) {
+      // URL already ends with /pl, use as-is
+      normalizedUrl = normalizedUrl
     }
+    // Don't automatically add /pl - let users specify the exact URL they want
 
     console.log('=== PRAIRIELEARN TEST DEBUG ===')
     console.log('Original URL:', prairieLearnUrl)
