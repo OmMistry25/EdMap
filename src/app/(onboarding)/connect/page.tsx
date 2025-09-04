@@ -232,6 +232,83 @@ function OnboardingContent() {
     }
   }
 
+  const handlePrairieLearnTest = async () => {
+    if (!prairieLearnToken || !prairieLearnUrl) {
+      alert('Please enter both URL and access token first')
+      return
+    }
+    
+    try {
+      const response = await fetch('/api/integrations/prairielearn/test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prairieLearnUrl,
+          accessToken: prairieLearnToken
+        })
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        console.log('PrairieLearn test results:', data)
+        console.log('Raw results array:', data.results)
+        
+        // Show detailed results
+        let message = `Test Results for: ${data.testedUrl}\n\n`
+        data.results.forEach((result: Record<string, unknown>, index: number) => {
+          console.log(`Processing result ${index}:`, result)
+          
+          if (result.error) {
+            message += `❌ ${result.endpoint}: ${result.error}\n`
+          } else if (result.ok) {
+            message += `✅ ${result.endpoint}: ${result.status} - Working!\n`
+          } else {
+            // This handles HTTP error responses (401, 404, 500, etc.)
+            const status = result.status as number
+            const statusText = result.statusText as string
+            const errorDetails = result.errorDetails as string || ''
+            
+            console.log(`Result ${index} - Status: ${status}, StatusText: ${statusText}, ErrorDetails: ${errorDetails}`)
+            
+            if (status === 401) {
+              message += `🔐 ${result.endpoint}: ${status} ${statusText} - Authentication required\n`
+              if (errorDetails) {
+                message += `   Details: ${errorDetails}\n`
+              }
+            } else if (status === 404) {
+              message += `🚫 ${result.endpoint}: ${status} ${statusText} - Endpoint not found\n`
+              if (errorDetails) {
+                message += `   Details: ${errorDetails}\n`
+              }
+            } else if (status >= 500) {
+              message += `💥 ${result.endpoint}: ${status} ${statusText} - Server error\n`
+              if (errorDetails) {
+                message += `   Details: ${errorDetails}\n`
+              }
+            } else {
+              message += `⚠️ ${result.endpoint}: ${status} ${statusText}\n`
+              if (errorDetails) {
+                message += `   Details: ${errorDetails}\n`
+              }
+            }
+          }
+        })
+        
+        console.log('Final message:', message)
+        alert(message)
+      } else {
+        console.error('PrairieLearn test failed:', data.error)
+        alert(`Test failed: ${data.error}`)
+      }
+    } catch (error) {
+      console.error('PrairieLearn test error:', error)
+      alert('Test failed. Please try again.')
+    }
+  }
+
   const getStatusMessage = () => {
     const success = searchParams.get('success')
     const error = searchParams.get('error')
@@ -597,21 +674,32 @@ function OnboardingContent() {
                       Generate this from your PrairieLearn profile settings
                     </p>
                   </div>
-                  <div className="flex gap-2 pt-4">
+                  <div className="space-y-3 pt-4">
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setShowPrairieLearnForm(false)}
+                        className="flex-1"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        disabled={submitting}
+                        className="flex-1"
+                      >
+                        {submitting ? 'Connecting...' : 'Connect'}
+                      </Button>
+                    </div>
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => setShowPrairieLearnForm(false)}
-                      className="flex-1"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="submit"
+                      onClick={handlePrairieLearnTest}
                       disabled={submitting}
-                      className="flex-1"
+                      className="w-full"
                     >
-                      {submitting ? 'Connecting...' : 'Connect'}
+                      Test Connection
                     </Button>
                   </div>
                 </form>

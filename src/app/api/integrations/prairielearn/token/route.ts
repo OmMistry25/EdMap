@@ -17,29 +17,77 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Access token is required' }, { status: 400 })
     }
 
-    const finalPrairieLearnUrl = prairieLearnUrl || 'https://prairielearn.illinois.edu'
+    // Normalize the PrairieLearn URL to ensure it ends with /pl
+    let normalizedUrl = prairieLearnUrl || 'https://prairielearn.illinois.edu'
+    
+    // Ensure URL ends with /pl for API calls
+    if (!normalizedUrl.endsWith('/pl')) {
+      normalizedUrl = normalizedUrl.endsWith('/') ? `${normalizedUrl}pl` : `${normalizedUrl}/pl`
+    }
 
-    // Validate the token by fetching user info
+    console.log('=== PRAIRIELEARN CONNECTION DEBUG ===')
+    console.log('Original URL:', prairieLearnUrl)
+    console.log('Normalized URL:', normalizedUrl)
+    console.log('Access token length:', accessToken.length)
+
+    // Validate the token by fetching courses (this endpoint exists on us.prairielearn.com)
     let prairieLearnUser
     try {
-      const response = await fetch(`${finalPrairieLearnUrl}/api/v1/user`, {
+      console.log('Validating PrairieLearn access token...')
+      
+      // Use the courses endpoint to validate the token
+      const apiUrl = `${normalizedUrl}/api/v1/courses`
+      console.log('API URL:', apiUrl)
+      
+      const response = await fetch(apiUrl, {
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
+          'Private-Token': accessToken,
           'Content-Type': 'application/json'
         }
       })
       
-      if (!response.ok) {
-        throw new Error(`PrairieLearn API error: ${response.status}`)
+      console.log('Response status:', response.status)
+      console.log('Response statusText:', response.statusText)
+      
+      if (response.ok) {
+        // Check if response is actually JSON
+        const contentType = response.headers.get('content-type')
+        if (!contentType || !contentType.includes('application/json')) {
+          console.log('Response is not JSON, content-type:', contentType)
+          
+          // Get the response text to see what we're actually getting
+          const responseText = await response.text()
+          console.log('Response text (first 200 chars):', responseText.substring(0, 200))
+          
+          throw new Error('PrairieLearn API returned HTML instead of JSON. This suggests an authentication or session issue.')
+        }
+        
+        const courses = await response.json()
+        console.log('Courses received:', courses)
+        
+        prairieLearnUser = {
+          id: 'prairielearn_user',
+          name: 'PrairieLearn User',
+          courses_count: Array.isArray(courses) ? courses.length : 0
+        }
+        
+        console.log('Successfully validated PrairieLearn access token')
+      } else if (response.status === 401) {
+        throw new Error('Invalid access token - authentication failed')
+      } else if (response.status === 404) {
+        throw new Error('PrairieLearn API endpoint not found. Please check the URL.')
+      } else {
+        const errorText = await response.text()
+        console.log('Error response body:', errorText)
+        throw new Error(`PrairieLearn API error: ${response.status} - ${response.statusText}`)
       }
       
-      prairieLearnUser = await response.json()
-      console.log('PrairieLearn user info retrieved:', prairieLearnUser.name)
-    } catch (userError) {
-      console.error('Failed to validate PrairieLearn access token:', userError)
-      return NextResponse.json({ 
-        error: 'Invalid access token or PrairieLearn URL. Please check your credentials.' 
-      }, { status: 400 })
+    } catch (apiError) {
+      console.error('=== PRAIRIELEARN API ERROR ===')
+      console.error('Error type:', typeof apiError)
+      console.error('Error message:', apiError instanceof Error ? apiError.message : 'Unknown error')
+      console.error('Full error:', apiError)
+      throw apiError
     }
 
     // Check if integration already exists
@@ -88,13 +136,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to store access token' }, { status: 500 })
     }
 
-    // Store the PrairieLearn URL
+    // Store the normalized PrairieLearn URL
     const { error: urlInsertError } = await supabase
       .from('integration_secrets')
       .upsert({
         integration_id: integrationId,
         secret_type: 'prairielearn_url',
-        encrypted_value: finalPrairieLearnUrl,
+        encrypted_value: normalizedUrl,
         expires_at: null
       })
 
